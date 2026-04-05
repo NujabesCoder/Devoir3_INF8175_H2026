@@ -28,7 +28,7 @@ class PerceptronModel(object):
             x: a node with shape (1 x dimensions)
         Returns: a node containing a single number (the score)
         """
-        "*** TODO: COMPLETE HERE FOR QUESTION 1 ***"
+        return nn.DotProduct(self.w, x)
 
     def get_prediction(self, x: nn.Constant) -> int:
         """
@@ -36,13 +36,41 @@ class PerceptronModel(object):
 
         Returns: 1 or -1
         """
-        "*** TODO: COMPLETE HERE FOR QUESTION 1 ***"
+        resultat = nn.as_scalar(self.run(x))
+        if resultat >= 0:
+            return 1
+        else:
+            return -1
+    
 
     def train(self, dataset: PerceptronDataset) -> None:
         """
         Train the perceptron until convergence.
         """
-        "*** TODO: COMPLETE HERE FOR QUESTION 1 ***"
+        converge = False
+        while not converge:
+            converge = True
+            for x, y in dataset.iterate_once(1):
+                prediction = self.get_prediction(x)
+                actual = nn.as_scalar(y)
+                # si un point et encore mal classé, on met à jour les poids et on continue l'entraînement
+                if prediction != actual:
+                    self.w.update(x, actual)
+                    converge = False
+
+            """ 
+            Implémenter la méthode train(self) qui vise à entraîner votre modèle. Pour cette situation assez
+            simple où toutes les données sont linéairement séparables 1, la procédure d’entraînement que vous
+            devez implémenter est la suivante :
+            — Tant que tous les exemples ne sont pas bien classés, itérez sur tout l’ensemble d’entraînement, en
+            prenant les instances une à une. Pour cela, utilisez la fonction dataset.iterate_once.
+            — Pour chaque instance, repérez si elle est bien classée. Si ce n’est pas le cas, mettez à jour les poids
+            w en suivant l’Equation (2) à l’aide de la fonction update.
+            — Lorsqu’un passage complet sur l’ensemble de données est effectué sans erreur, cela veut dire que
+            la précision est de 100% et l’entraînement peut prendre fin.
+
+
+            w ←w + yx si et seulement si y ̸=y                   """
 
 
 class RegressionModel(object):
