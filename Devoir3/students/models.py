@@ -49,11 +49,13 @@ class PerceptronModel(object):
         """
         converge = False
         while not converge:
+
             converge = True
+
             for x, y in dataset.iterate_once(1):
                 prediction = self.get_prediction(x)
                 actual = nn.as_scalar(y)
-                # si un point et encore mal classé, on met à jour les poids et on continue l'entraînement
+                # si un point est encore mal classé, on met à jour les poids et on continue l'entraînement
                 if prediction != actual:
                     self.w.update(x, actual)
                     converge = False
@@ -66,13 +68,13 @@ class RegressionModel(object):
     """
 
     def __init__(self) -> None:
-        self.w1 = nn.Parameter(1, 128)
-        self.b1 = nn.Parameter(1, 128)
-        self.w2 = nn.Parameter(128, 64)
-        self.b2 = nn.Parameter(1, 64)
-        self.w3 = nn.Parameter(64, 1)
+        self.w1 = nn.Parameter(1, 64)
+        self.b1 = nn.Parameter(1, 64)
+        self.w2 = nn.Parameter(64, 32)
+        self.b2 = nn.Parameter(1, 32)
+        self.w3 = nn.Parameter(32, 1)
         self.b3 = nn.Parameter(1, 1)
-        self.lr = 0.01
+        self.alpha = 0.01
         self.batch_size = 50
 
     def run(self, x: nn.Constant) -> nn.Node:
@@ -84,10 +86,10 @@ class RegressionModel(object):
         Returns:
             A node with shape (batch_size x 1) containing predicted y-values
         """
-        h1 = nn.ReLU(nn.AddBias(nn.Linear(x, self.w1), self.b1))
-        h2 = nn.ReLU(nn.AddBias(nn.Linear(h1, self.w2), self.b2))
-        output = nn.AddBias(nn.Linear(h2, self.w3), self.b3)
-        return output
+        couche1 = nn.ReLU(nn.AddBias(nn.Linear(x, self.w1), self.b1))
+        couche2 = nn.ReLU(nn.AddBias(nn.Linear(couche1, self.w2), self.b2))
+        sortie = nn.AddBias(nn.Linear(couche2, self.w3), self.b3)
+        return sortie
 
     def get_loss(self, x: nn.Constant, y: nn.Constant) -> nn.Node:
         """
@@ -106,16 +108,22 @@ class RegressionModel(object):
         Trains the model.
         """
         params = [self.w1, self.b1, self.w2, self.b2, self.w3, self.b3]
-        while True:
+        converge = False
+        while not converge:
+            converge = True
             for x, y in dataset.iterate_once(self.batch_size):
                 loss = self.get_loss(x, y)
                 grads = nn.gradients(loss, params)
-                for param, grad in zip(params, grads):
-                    param.update(grad, -self.lr)
-            # Vérifier la convergence sur tout le dataset
+                self.w1.update(grads[0], -self.alpha)
+                self.b1.update(grads[1], -self.alpha)
+                self.w2.update(grads[2], -self.alpha)
+                self.b2.update(grads[3], -self.alpha)
+                self.w3.update(grads[4], -self.alpha)
+                self.b3.update(grads[5], -self.alpha)
+            # Vérifie la convergence sur tout le dataset
             total_loss = self.get_loss(nn.Constant(dataset.x), nn.Constant(dataset.y))
-            if nn.as_scalar(total_loss) < 0.001:
-                break
+            if not nn.as_scalar(total_loss) < 0.001:
+                converge = False
 
 
 class DigitClassificationModel(object):
@@ -140,7 +148,7 @@ class DigitClassificationModel(object):
         self.b2 = nn.Parameter(1, 128)
         self.w3 = nn.Parameter(128, 10)
         self.b3 = nn.Parameter(1, 10)
-        self.lr = 0.1
+        self.alpha = 0.1
         self.batch_size = 100
 
     def run(self, x: nn.Constant) -> nn.Node:
@@ -157,10 +165,10 @@ class DigitClassificationModel(object):
             A node with shape (batch_size x 10) containing predicted scores
                 (also called logits)
         """
-        h1 = nn.ReLU(nn.AddBias(nn.Linear(x, self.w1), self.b1))
-        h2 = nn.ReLU(nn.AddBias(nn.Linear(h1, self.w2), self.b2))
-        output = nn.AddBias(nn.Linear(h2, self.w3), self.b3)
-        return output
+        couche1 = nn.ReLU(nn.AddBias(nn.Linear(x, self.w1), self.b1))
+        couche2 = nn.ReLU(nn.AddBias(nn.Linear(couche1, self.w2), self.b2))
+        sortie = nn.AddBias(nn.Linear(couche2, self.w3), self.b3)
+        return sortie
 
     def get_loss(self, x: nn.Constant, y: nn.Constant) -> nn.Node:
         """
@@ -182,12 +190,19 @@ class DigitClassificationModel(object):
         Trains the model.
         """
         params = [self.w1, self.b1, self.w2, self.b2, self.w3, self.b3]
-        while True:
+        converge = False
+        while not converge:
+            converge = True
             for x, y in dataset.iterate_once(self.batch_size):
                 loss = self.get_loss(x, y)
                 grads = nn.gradients(loss, params)
-                for param, grad in zip(params, grads):
-                    param.update(grad, -self.lr)
+                self.w1.update(grads[0], -self.alpha)
+                self.b1.update(grads[1], -self.alpha)
+                self.w2.update(grads[2], -self.alpha)
+                self.b2.update(grads[3], -self.alpha)
+                self.w3.update(grads[4], -self.alpha)
+                self.b3.update(grads[5], -self.alpha)   
+
             accuracy = dataset.get_validation_accuracy()
-            if accuracy >= 0.975:
-                break
+            if not accuracy >= 0.975:
+                converge = False
